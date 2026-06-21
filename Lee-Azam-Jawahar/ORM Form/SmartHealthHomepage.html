@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SmartHealth Appointment Booking System</title>
+    <style>
+        body {
+            background-color: aliceblue;
+            color: dimgray;
+            font-family: Calibri;
+            margin: 0;
+        }
+
+        button {
+            background-color: royalblue;
+            border: none;
+            border-radius: 5px;
+            color: white;
+            cursor: pointer;
+            font-family: Calibri;
+            margin-top: 20px;
+            padding: 12px 20px;
+        }
+
+        form {
+            background-color: white;
+            border: 1px solid lightgray;
+            border-radius: 10px;
+            font-family: Calibri;
+            margin: 30px auto;
+            max-width: 600px;
+            padding: 20px;
+            width: 80%;
+        }
+
+        h1 {
+            text-align: center;
+        }
+
+        h2 {
+            text-align: center;
+        }
+
+        h3 {
+            border-bottom: 2px solid lightblue;
+            color: royalblue;
+            font-family: Calibri;
+            padding-bottom: 5px;
+            text-align: center;
+        }
+
+        
+        .header {
+            background-color: royalblue;
+            color: white;
+            font-family: Calibri;
+            padding: 20px;
+            text-align: center;
+        }
+
+        input {
+            background-color: whitesmoke;
+            border: 1px solid lightgray;
+            border-radius: 5px;
+            font-family: Calibri;
+            padding: 10px;
+            width: 30%;
+        }
+
+        label {
+            color: royalblue;
+            display: block;
+            font-family: Calibri;
+            font-weight: bold;
+            margin-bottom: 5px;
+            margin-top: 15px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="header">
+        <h1>SmartHealth Medical Center</h1>
+        <h2>HealthCare Appointment System</h2>
+    </div>
+    <div class="container">
+        <div class="infoBox">
+            <h3>Patient Search Portal</h3>
+            <label>Patient ID</label>
+            <input type="number" id="patientID" placeholder="Enter Patient ID">
+            <br />
+            <button type="button" onclick="checkPatient()">Check Latest Appointment</button>
+        </div>
+        <div class="displayContainer">
+            <h3>Latest Appointment Details</h3>
+            <p>
+                <strong>Appointment ID:</strong>
+                <label id="appointmentID" hidden></label>
+            </p>
+            <p>
+                <strong>Patient Full Name:</strong>
+                <label id="patientFullName" hidden></label>
+            </p>
+
+            <p>
+                <strong>Booking Date:</strong>
+                <label id="bookingDate" hidden></label>
+            </p>
+
+            <p>
+                <strong>Appointment Date and Time:</strong>
+                <label id="dateTimeForAppointment" hidden></label>
+            </p>
+
+            <p>
+                <strong>Status:</strong>
+                <label id="status" hidden></label>
+            </p>
+
+            <p>
+                <strong>Booking Method:</strong>
+                <label id="bookingMethod" hidden></label>
+            </p>
+        </div>
+        <div class="formSection">
+            <h3>Create New Appointment</h3>
+            <form id="appointmentForm">
+                <label>Patient ID</label>
+                <input type="number" id="formPatientID">
+                <label>Appointment Date & Time</label>
+                <input type="datetime-local" id="appointmentDateTime">
+                <label>Booking Method</label>
+                <select id="formBookingMethod">
+                    <option value="phone">Phone</option>
+                    <option value="online">Online</option>
+                    <option value="in person">In Person</option>
+                </select>
+                <label>Doctor ID</label>
+                <input type="number" id="doctorID">
+                <label>Clinic ID</label>
+                <input type="number" id="clinicID">
+                <label>Room Number</label>
+                <input type="text" id="roomNo">
+                <br />
+                <button type="submit" class="btn">Book Appointment</button>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // Task #2: validate the patient, then display their latest appointment.
+        async function checkPatient() {
+            try {
+                const patientId =
+                    document.getElementById("patientID").value;
+                if (!patientId) {
+                    alert("Please enter a Patient ID");
+                    return;
+                }
+
+                // Validate the patient first using Task #1 endpoint.
+                const response =
+                    await fetch(
+                        "validatePatient?patientId=" + patientId
+                    );
+                const result = await response.json();
+                if (!result.exists) {
+                    alert("Patient ID does not exist");
+                    hideAppointmentDetails();
+                    return;
+                }
+
+                // Fetch the latest appointment only after the patient exists.
+                const apptResponse =
+                    await fetch(
+                        "latestAppointment?patientId=" + patientId
+                    );
+                const appt = await apptResponse.json();
+                if (!appt.found) {
+                    alert("This patient has no appointments on record");
+                    hideAppointmentDetails();
+                    return;
+                }
+
+                showField("appointmentID", appt.appointmentId);
+                showField("patientFullName", appt.patientFullName);
+                showField("bookingDate", appt.bookingDate);
+                showField("dateTimeForAppointment", appt.appointmentDateTime);
+                showField("status", appt.status);
+                showField("bookingMethod", appt.bookingMethod);
+            } catch (e) {
+                // Handle request failures safely.
+                hideAppointmentDetails();
+                alert("Could not load the latest appointment. Please try again.");
+            }
+        }
+
+        // Shows a hidden appointment detail field.
+        function showField(id, value) {
+            const el = document.getElementById(id);
+            el.textContent = value;
+            el.hidden = false;
+        }
+
+        // Clears and hides the appointment detail fields.
+        function hideAppointmentDetails() {
+            ["appointmentID", "patientFullName", "bookingDate",
+             "dateTimeForAppointment", "status", "bookingMethod"]
+                .forEach(function (id) {
+                    const el = document.getElementById(id);
+                    el.textContent = "";
+                    el.hidden = true;
+                });
+        }
+
+        // Task #3: validate the booking form and send the appointment request to the server.
+        document.getElementById("appointmentForm").addEventListener("submit", async function (event) {
+            event.preventDefault();
+            var patientID = document.getElementById("formPatientID").value;
+            var appointmentDateTime = document.getElementById("appointmentDateTime").value;
+            var bookingMethod = document.getElementById("formBookingMethod").value;
+            var doctorID = document.getElementById("doctorID").value;
+            var clinicID = document.getElementById("clinicID").value;
+            var roomNo = document.getElementById("roomNo").value;
+
+            // --- client-side checks ---
+            if (patientID === "" || appointmentDateTime === "" || bookingMethod === "" ||
+                doctorID === "" || clinicID === "" || roomNo === "") {
+                alert("Please complete all fields before continuing");
+                return;
+            }
+            if (patientID <= 0) { alert("Patient ID must be a positive number."); return; }
+            if (doctorID <= 0) { alert("Doctor ID must be a positive number."); return; }
+            if (clinicID <= 0) { alert("Clinic ID must be a positive number."); return; }
+            const roomRegEx = /^[a-zA-Z0-9]+$/;
+            if (!roomRegEx.test(roomNo)) { alert("Invalid format for Room Number"); return; }
+            var now = new Date();
+            var selectedDate = new Date(appointmentDateTime);
+            if (selectedDate.getTime() <= now.getTime()) {
+                alert("Please select a future date and time to schedule your appointment");
+                return;
+            }
+
+            // --- send to the server so the appointment is actually inserted ---
+            try {
+                const params = new URLSearchParams({
+                    patientId: patientID,
+                    doctorId: doctorID,
+                    clinicId: clinicID,
+                    roomNo: roomNo,
+                    appointmentDateTime: appointmentDateTime,
+                    bookingMethod: bookingMethod
+                });
+                const response = await fetch("bookAppointment", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+                    body: params.toString()
+                });
+                const result = await response.json();
+                if (result.success) {
+                    alert("Appointment booked successfully! Appointment ID: " + result.appointmentId);
+                } else {
+                    alert("Booking failed: " + result.error);
+                }
+            } catch (e) {
+                alert("Could not reach the server. Please try again.");
+            }
+        });
+    </script>
+</body>
+
+</html>
